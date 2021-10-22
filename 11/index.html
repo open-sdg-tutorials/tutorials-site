@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
-        <script crossorigin="anonymous" src="https://polyfill.io/v3/polyfill.min.js?features=Promise%2CArray.prototype.forEach%2CString.prototype.includes%2CURLSearchParams%2CCustomEvent%2CArray.prototype.includes%2CArray.prototype.filter%2CArray.prototype.some%2CArray.prototype.find%2CObject.assign%2CArray.isArray%2CObject.values%2CArray.from%2CSet"></script>
+        <script crossorigin="anonymous" src="https://polyfill.io/v3/polyfill.min.js?features=Promise%2CArray.prototype.forEach%2CString.prototype.includes%2CURLSearchParams%2CCustomEvent%2CArray.prototype.includes%2CArray.prototype.filter%2CArray.prototype.some%2CArray.prototype.find%2CArray.prototype.reduce%2CObject.assign%2CArray.isArray%2CObject.values%2CArray.from%2CSet%2CArray.prototype.findIndex"></script>
 <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/javascript-canvas-to-blob/3.15.0/js/canvas-to-blob.min.js"></script>
 
         <script>
@@ -19,11 +19,23 @@ var opensdg = {
     this.chartConfigAlterations.push(callback);
   },
 
+  tableConfigAlterations: [],
+  // A hook which can be used to modify the configuration for Datatables.
+  tableConfigAlter: function(callback) {
+    this.tableConfigAlterations.push(callback);
+  },
+
   // A hook which can be replaced to alter whether/how the values that are
   // displayed on indicator tables/graphs get rounded.
   dataRounding: function(value) {
     // Alterations go here.
     return value;
+  },
+
+  // A hook which can be used to alter the data before it is displayed on charts/tables.
+  dataDisplayAlterations: [],
+  dataDisplayAlter: function(callback) {
+    this.dataDisplayAlterations.push(callback);
   },
 
   language: 'en',
@@ -102,38 +114,42 @@ var translations = {
         
         <link rel="canonical" href="/">
 
-        
-
         <!--[if IE 9]>
         <script src="/tutorials-site/assets/js/lib/classList.js"></script>
         <![endif]-->
 
-        <!-- Favicons ================================================== -->
-        <!-- 128x128 -->
-        <link rel="shortcut icon" type="image/ico" href="/tutorials-site/assets/img/favicons/favicon.ico">
-        <link rel="icon" type="image/png" href="/tutorials-site/assets/img/favicons/favicon.png"><!-- 192x192, as recommended for Android
-        http://updates.html5rocks.com/2014/11/Support-for-theme-color-in-Chrome-39-for-Android
-        -->
-
         
+
+
+
+
+<link rel="shortcut icon" type="image/ico" href="/tutorials-site/assets/img/favicons/favicon.ico">
+<link rel="icon" type="image/png" href="/tutorials-site/assets/img/favicons/favicon.png">
+
 
         
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" crossorigin="">
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" crossorigin="">
         <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/3.2.3/css/fixedColumns.dataTables.min.css" crossorigin="">
-        <link rel="stylesheet" href="/tutorials-site/assets/css/style.css?v=20210407012250">
-        <link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto" rel="stylesheet" crossorigin="">
+        <link rel="stylesheet" href="/tutorials-site/assets/css/style.css?v=20211022100952">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css"
           integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
           crossorigin=""/>
         <link rel="stylesheet" href="https://cdn.rawgit.com/socib/Leaflet.TimeDimension/master/dist/leaflet.timedimension.control.min.css"  crossorigin=""/>
         <link rel="stylesheet" href='https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css'  crossorigin=""/>
         <link rel="stylesheet" href="https://bowercdn.net/c/leaflet.zoomhome-latest/dist/leaflet.zoomhome.css"  crossorigin=""/>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-search@2.9.7/dist/leaflet-search.min.css" crossorigin=""><!-- ShareThis BEGIN --><!-- ShareThis END -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-search@2.9.7/dist/leaflet-search.min.css" crossorigin="">
+        <link rel="stylesheet" href="https://cdn.kiprotect.com/klaro/v0.7/klaro.min.css" crossorigin=""/>
+        
+
+        
 
     </head>
-<body class="language-en layout-goal-by-target-vertical">
+<body class="language-en
+layout-goal-by-target-vertical
+">
 <!-- <div class="container"> -->
+
 
 <script>translations['header'] = {"alpha":"Alpha","default_contrast":"Default contrast","disable_high_contrast":"Disable high contrast","disclaimer":"This is a development website. We welcome your <a href=\"mailto:%email_address\">feedback</a>.","enable_high_contrast":"Enable high contrast","high_contrast":"High contrast","skip_link":"Skip to main content","tag_line":"17 Goals to Transform our World","toggle_menu":"Menu toggle. Click to expand or collapse the menu.","toggle_search":"Search toggle. Click to expand or collapse the search bar."};</script>
 
@@ -149,23 +165,51 @@ var translations = {
 
 </div>
 
-<header role="banner">
+<header role="banner" class="header-menu-left-aligned">
   <div class="container">
 
     <div class="logo-and-mobile-widgets">
       <a class="navbar-brand" href="/tutorials-site/" id="home">
-        <img src="/tutorials-site/assets/img/SDG_logo.png" alt="Sustainable Development Goals - 17 Goals to Transform our World" />
-      </a>
-
+    <img src="/tutorials-site/assets/img/SDG_logo.png" alt="Sustainable Development Goals - 17 Goals to Transform our World" />
+</a>
       <div class="mobile-widgets">
-        <ul id='accessibility-nav' class='contrast-switcher'></ul><div class="language-toggle-mobile">
-          <div class="language-toggle-container">
+    <ul id='accessibility-nav' class='contrast-switcher'>
+        
+
+    <li class="nav-link contrast contrast-default contrast-type-default">
+        <a title="Disable high contrast"
+           aria-label="Disable high contrast"
+           data-contrast-switch-to="default"
+           href="javascript:void(0)"
+           data-on="click"
+data-event-category="Accessibility"
+data-event-action="Change contrast setting"
+data-event-label="default"
+
+        >A</a>
+    </li>
+    <li class="nav-link contrast contrast-high contrast-type-default">
+        <a title="Enable high contrast"
+           aria-label="Enable high contrast"
+           data-contrast-switch-to="high"
+           href="javascript:void(0)"
+           data-on="click"
+data-event-category="Accessibility"
+data-event-action="Change contrast setting"
+data-event-label="high"
+
+        >A</a>
+    </li>
+
+
+    </ul><div class="language-toggle-mobile">
+        <div class="language-toggle-container">
   
   <div class="btn-group language-toggle-dropdown ">
     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
       <span class="language-globe-in-dropdown"><i class="fa fa-globe language-toggle-globe-dropdown"></i></span><span class="language-name">English</span>
       <span class="language-abbreviation">en</span><i class="language-toggle-caret fa fa-chevron-down"></i></button>
-    <ul class="dropdown-menu"><li>
+    <ul class="dropdown-menu"><li class="language-option-es">
             <a href="/tutorials-site/es/11/">
               Español
             </a>
@@ -173,91 +217,93 @@ var translations = {
   </div>
 </div>
 
-        </div></div>
+    </div></div>
     </div>
 
-    <nav class="navbar navbar-default" id="main-nav">
-
-      <ul class="top-level">
-        <li id="menuToggle"
-            aria-label="Menu toggle. Click to expand or collapse the menu."
-            aria-haspopup="true">
-          <button data-target="menu-mobile" aria-expanded="false">Menu</button>
-          <ul class="nav navbar-nav menu-target contrast-switcher" id="menu-mobile"><li class="nav-link ">
-    <a href="/tutorials-site/goals">Goals</a>
-    </li><li class="nav-link ">
-    <a href="/tutorials-site/reporting-status">Reporting Status</a>
-    </li><li class="nav-link ">
-    <a href="/tutorials-site/about">About</a>
-    </li><li class="nav-link ">
-    <a href="/tutorials-site/guidance">Guidance</a>
-    </li><li class="nav-link ">
-    <a href="/tutorials-site/faq">FAQ</a>
-    </li><li class="nav-link ">
-    <a href="/tutorials-site/news">Updates</a>
-    </li><li class="language-toggle-menu-header">
-    
-
-
-
-
-
-  <div class="language-toggle-container">
-  
-  <div class="btn-group language-toggle-dropdown ">
-    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-      <span class="language-globe-in-dropdown"><i class="fa fa-globe language-toggle-globe-dropdown"></i></span><span class="language-name">English</span>
-      <span class="language-abbreviation">en</span><i class="language-toggle-caret fa fa-chevron-down"></i></button>
-    <ul class="dropdown-menu"><li>
-            <a href="/tutorials-site/es/11/">
-              Español
-            </a>
-          </li></ul>
-  </div>
-</div>
-
-
-
-</li></ul>
-
-        </li>
-        <li id="searchToggle"
-            aria-label="Search toggle. Click to expand or collapse the search bar."
-            aria-haspopup="true">
-          <button data-target="search-mobile" aria-expanded="false">Search</button>
-          <div id="search-mobile" class="menu-target">
-  <form action="/tutorials-site/search">
-    <input type="text" name="q" id="indicator_search-mobile" title="Search" />
-    <label class="sr-only" for="indicator_search-mobile">Search</label>
-    <button aria-label="Search" id="search-mobile-btn" type="submit"><i class="fa fa-search" aria-hidden="false"></i></button>
-  </form>
-</div>
-
-        </li>
-      </ul>
-
+    <div class="search-and-desktop-widgets">
       <div id="search" class="menu-target">
-  <form action="/tutorials-site/search">
-    <input type="text" name="q" id="indicator_search" title="Search" />
+  <form action="/tutorials-site/search/">
     <label class="sr-only" for="indicator_search">Search</label>
-    <button aria-label="Search" id="search-btn" type="submit"><i class="fa fa-search" aria-hidden="false"></i></button>
+    <input type="text" name="q" id="indicator_search" title="Search" /><!--
+    --><button aria-label="Search" id="search-btn" type="submit"><i class="fa fa-search" aria-hidden="false"></i></button>
   </form>
 </div>
 
+      <div class="navbar navbar-default widgets-without-menu">
+        <ul class="nav navbar-nav contrast-switcher"><li class="language-toggle-menu-header">
+            
 
-      <ul class="nav navbar-nav menu-target contrast-switcher" id="menu"><li class="nav-link ">
+
+
+
+
+  <div class="language-toggle-container">
+  
+  <div class="btn-group language-toggle-dropdown ">
+    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <span class="language-globe-in-dropdown"><i class="fa fa-globe language-toggle-globe-dropdown"></i></span><span class="language-name">English</span>
+      <span class="language-abbreviation">en</span><i class="language-toggle-caret fa fa-chevron-down"></i></button>
+    <ul class="dropdown-menu"><li class="language-option-es">
+            <a href="/tutorials-site/es/11/">
+              Español
+            </a>
+          </li></ul>
+  </div>
+</div>
+
+
+
+        </li>
+
+    <li class="nav-link contrast contrast-default contrast-type-default">
+        <a title="Disable high contrast"
+           aria-label="Disable high contrast"
+           data-contrast-switch-to="default"
+           href="javascript:void(0)"
+           data-on="click"
+data-event-category="Accessibility"
+data-event-action="Change contrast setting"
+data-event-label="default"
+
+        >A</a>
+    </li>
+    <li class="nav-link contrast contrast-high contrast-type-default">
+        <a title="Enable high contrast"
+           aria-label="Enable high contrast"
+           data-contrast-switch-to="high"
+           href="javascript:void(0)"
+           data-on="click"
+data-event-category="Accessibility"
+data-event-action="Change contrast setting"
+data-event-label="high"
+
+        >A</a>
+    </li>
+
+
+        </ul>
+      </div>
+    </div>
+
+    <div class="navbar navbar-default menu-without-widgets" id="main-nav">
+      <ul class="top-level">
+    <li id="menuToggle"
+        aria-label="Menu toggle. Click to expand or collapse the menu."
+        aria-haspopup="true">
+        <button data-target="menu-mobile" aria-expanded="false">Menu</button>
+        <ul class="nav navbar-nav menu-target contrast-switcher" id="menu-mobile"><li class="nav-link ">
     <a href="/tutorials-site/goals">Goals</a>
-    </li><li class="nav-link ">
+</li><li class="nav-link ">
     <a href="/tutorials-site/reporting-status">Reporting Status</a>
-    </li><li class="nav-link ">
+</li><li class="nav-link ">
     <a href="/tutorials-site/about">About</a>
-    </li><li class="nav-link ">
+</li><li class="nav-link ">
     <a href="/tutorials-site/guidance">Guidance</a>
-    </li><li class="nav-link ">
+</li><li class="nav-link ">
     <a href="/tutorials-site/faq">FAQ</a>
-    </li><li class="nav-link ">
+</li><li class="nav-link ">
     <a href="/tutorials-site/news">Updates</a>
-    </li><li class="language-toggle-menu-header">
+</li><li class="language-toggle-menu-header">
     
 
 
@@ -270,7 +316,7 @@ var translations = {
     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
       <span class="language-globe-in-dropdown"><i class="fa fa-globe language-toggle-globe-dropdown"></i></span><span class="language-name">English</span>
       <span class="language-abbreviation">en</span><i class="language-toggle-caret fa fa-chevron-down"></i></button>
-    <ul class="dropdown-menu"><li>
+    <ul class="dropdown-menu"><li class="language-option-es">
             <a href="/tutorials-site/es/11/">
               Español
             </a>
@@ -280,14 +326,78 @@ var translations = {
 
 
 
-</li></ul>
+</li>
 
 
-    </nav>
+
+    <li class="nav-link contrast contrast-default contrast-type-default">
+        <a title="Disable high contrast"
+           aria-label="Disable high contrast"
+           data-contrast-switch-to="default"
+           href="javascript:void(0)"
+           data-on="click"
+data-event-category="Accessibility"
+data-event-action="Change contrast setting"
+data-event-label="default"
+
+        >A</a>
+    </li>
+    <li class="nav-link contrast contrast-high contrast-type-default">
+        <a title="Enable high contrast"
+           aria-label="Enable high contrast"
+           data-contrast-switch-to="high"
+           href="javascript:void(0)"
+           data-on="click"
+data-event-category="Accessibility"
+data-event-action="Change contrast setting"
+data-event-label="high"
+
+        >A</a>
+    </li>
+
+
+
+</ul>
+
+    </li>
+    <li id="searchToggle"
+        aria-label="Search toggle. Click to expand or collapse the search bar."
+        aria-haspopup="true">
+        <button data-target="search-mobile" aria-expanded="false">Search</button>
+        <div id="search-mobile" class="menu-target">
+  <form action="/tutorials-site/search/">
+    <label class="sr-only" for="indicator_search-mobile">Search</label>
+    <input type="text" name="q" id="indicator_search-mobile" title="Search" /><!--
+    --><button aria-label="Search" id="search-mobile-btn" type="submit"><i class="fa fa-search" aria-hidden="false"></i></button>
+  </form>
+</div>
+
+    </li>
+</ul>
+      <ul class="nav navbar-nav menu-target " id="menu"><li class="nav-link ">
+    <a href="/tutorials-site/goals">Goals</a>
+</li><li class="nav-link ">
+    <a href="/tutorials-site/reporting-status">Reporting Status</a>
+</li><li class="nav-link ">
+    <a href="/tutorials-site/about">About</a>
+</li><li class="nav-link ">
+    <a href="/tutorials-site/guidance">Guidance</a>
+</li><li class="nav-link ">
+    <a href="/tutorials-site/faq">FAQ</a>
+</li><li class="nav-link ">
+    <a href="/tutorials-site/news">Updates</a>
+</li>
+
+</ul>
+
+    </div>
+
   </div>
 
 </header>
 <div id="top" tabindex=-1></div>
+
+
 
 
 <div class="container">
@@ -299,13 +409,14 @@ var translations = {
   
 </ol>
 
+  
 </div>
 
 <div class="heading goal-banner goal-11">
   <div class="container">
     <div class="row">
       <div class="col-xs-4 col-md-3 col-lg-2 goal-tiles">
-        <img src="https://open-sdg.org/sdg-translations/assets/img/goals/en/11.png" alt="Sustainable cities &amp; communities - Goal 11" id="goal-11"/>
+        <img src="https://open-sdg.org/sdg-translations/assets/img/goals/en/11.png" alt="Sustainable cities &amp; communities - Goal 11" id="goal-11" class="goal-icon-image goal-icon-image-" />
       </div>
       <div class="col-xs-8 col-md-9 col-lg-10">
         <h1>
@@ -315,6 +426,7 @@ var translations = {
     </div>
   </div>
 </div>
+
 
 <div id="main-content" class="container" role="main">
 
@@ -338,21 +450,23 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.1.1</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-1-1">Proportion of urban population living in slums, informal settlements or inadequate housing</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -369,21 +483,23 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.2.1</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-2-1">Proportion of population that has convenient access to public transport, by sex, age and persons with disabilities</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -400,30 +516,27 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.3.1</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-3-1">Ratio of land consumption rate to population growth rate</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
 
-          
-          
-          
-          
-          
           
           
           
@@ -432,11 +545,18 @@ var translations = {
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.3.2</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-3-2">Proportion of cities with a direct participation structure of civil society in urban planning and management that operate regularly and democratically</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -453,21 +573,23 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.4.1</span>
             </h4>
-            <span class="indicator-name"><a href="/tutorials-site/11-4-1">Total expenditure (public and private) per capita spent on the preservation, protection and conservation of all cultural and natural heritage, by type of heritage (cultural, natural, mixed and World Heritage Centre designation), level of government (national, regional and local/municipal), type of expenditure (operating expenditure/investment) and type of private funding (donations in kind, private non-profit sector and sponsorship)</a></span>
+            
+            <span class="indicator-name"><a href="/tutorials-site/11-4-1">Total per capita expenditure on the preservation, protection and conservation of all cultural and natural heritage, by source of funding (public, private), type of heritage (cultural, natural) and level of government (national, regional, and local/municipal)</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -484,30 +606,27 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.5.1</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-5-1">Number of deaths, missing persons and directly affected persons attributed to disasters per 100,000 population</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
 
-          
-          
-          
-          
-          
           
           
           
@@ -516,11 +635,18 @@ var translations = {
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.5.2</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-5-2">Direct economic loss in relation to global GDP, damage to critical infrastructure and number of disruptions to basic services, attributed to disasters</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -537,30 +663,27 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.6.1</span>
             </h4>
-            <span class="indicator-name"><a href="/tutorials-site/11-6-1">Proportion of urban solid waste regularly collected and with adequate final discharge out of total urban solid waste generated, by cities</a></span>
+            
+            <span class="indicator-name"><a href="/tutorials-site/11-6-1">Proportion of municipal solid waste collected and managed in controlled facilities out of total municipal waste generated, by cities</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
 
-          
-          
-          
-          
-          
           
           
           
@@ -569,11 +692,18 @@ var translations = {
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.6.2</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-6-2">Annual mean levels of fine particulate matter (e.g. PM2.5 and PM10) in cities (population weighted)</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -590,30 +720,27 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.7.1</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-7-1">Average share of the built-up area of cities that is open space for public use for all, by sex, age and persons with disabilities</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
 
-          
-          
-          
-          
-          
           
           
           
@@ -622,11 +749,18 @@ var translations = {
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.7.2</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-7-2">Proportion of persons victim of physical or sexual harassment, by sex, age, disability status and place of occurrence, in the previous 12 months</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -643,21 +777,23 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.a.1</span>
             </h4>
-            <span class="indicator-name"><a href="/tutorials-site/11-a-1">Proportion of population living in cities that implement urban and regional development plans integrating population projections and resource needs, by size of city</a></span>
+            
+            <span class="indicator-name"><a href="/tutorials-site/11-a-1">Number of countries that have national urban policies or regional development plans that (a) respond to population dynamics; (b) ensure balanced territorial development; and (c) increase local fiscal space</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -674,30 +810,27 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.b.1</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-b-1">Number of countries that adopt and implement national disaster risk reduction strategies in line with the Sendai Framework for Disaster Risk Reduction 2015–2030</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
 
-          
-          
-          
-          
-          
           
           
           
@@ -706,11 +839,18 @@ var translations = {
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.b.2</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-b-2">Proportion of local governments that adopt and implement local disaster risk reduction strategies in line with national disaster risk reduction strategies</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -727,21 +867,23 @@ var translations = {
           
           
           
-          
-          
-          
-          
-          
 
           <div class="goal-indicator">
             <h4>
               <span class="indicator-number"><span class="sr-only">Indicator</span> 11.c.1</span>
             </h4>
+            
             <span class="indicator-name"><a href="/tutorials-site/11-c-1">Proportion of financial support to the least developed countries that is allocated to the construction and retrofitting of sustainable, resilient and resource-efficient buildings utilizing local materials</a></span>
             <span class="sr-only">Indicator status</span>
-            <span class="status notstarted">
-              Exploring data sources
-            </span>
+            
+
+
+<span class="status notstarted">
+    <span class="status-inner">Exploring data sources</span>
+</span>
+
+            
+
             
           </div>
         
@@ -786,18 +928,12 @@ var translations = {
   </div>
 </footer>
 
-<!-- Digital Analytics Program roll-up, see https://analytics.usa.gov for data -->
-<!-- <script id="_fed_an_ua_tag" src="https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=GSA"></script> -->
-<!-- Google Analytics -->
-
-<!-- /.container </div> -->
 <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"></script>
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 <script src="//cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
 <script src="//cdn.datatables.net/1.10.16/js/dataTables.bootstrap.min.js"></script>
 <script src="//cdn.datatables.net/fixedcolumns/3.2.3/js/dataTables.fixedColumns.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.20/lodash.min.js" integrity="sha512-90vH1Z83AJY9DmlWa8WkjkV79yfS2n2Oxhsi2dZbIv0nC4E6m5AbH8Nh156kkM7JePmqD6tcZsfad1ueoaovww==" crossorigin="anonymous"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/patternomaly@1.3.2/dist/patternomaly.js"></script>
 
@@ -805,18 +941,25 @@ var translations = {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/autotrack/2.4.1/autotrack.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.0.0-rc.3/dist/html2canvas.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js"></script>
+
+
+
+
+
+
+
 <script>translations['general'] = translations['general'] || {};
     translations['general']['hide'] = 'hide';</script>
 
 <script>translations['search'] = translations['search'] || {};
     translations['search']['search'] = 'Search';</script>
 
-<script src='/tutorials-site/assets/js/sdg.js?v=20210407012250'></script>
+<script src='/tutorials-site/assets/js/sdg.js?v=20211022100952'></script>
 
 
     
     
-    <script src="/tutorials-site/assets/js/custom.js?v=20210407012250"></script><script>
+    <script src="/tutorials-site/assets/js/custom.js?v=20211022100952"></script><script>
 $(function() {
     if($('#indicatorData').length) {
       var domData = $('#indicatorData').data();
@@ -849,17 +992,24 @@ $(function() {
               chartTitle: domData.charttitle,
               chartTitles: domData.charttitles,
               measurementUnit: domData.measurementunit,
+              xAxisLabel: domData.xaxislabel,
               showData: domData.showdata,
               graphType: domData.graphtype,
               startValues: domData.startvalues,
               graphLimits: domData.graphlimits,
               stackedDisaggregation: domData.stackeddisaggregation,
               graphAnnotations: domData.graphannotations,
+              graphTargetLines: domData.graphtargetlines,
+              graphSeriesBreaks: domData.graphseriesbreaks,
               indicatorDownloads: domData.indicatordownloads,
+              dataSchema: domData.dataschema,
+              compositeBreakdownLabel: domData.compositebreakdownlabel,
+              precision: domData.precision,
             }),
             view  = new indicatorView(model, {
               rootElement: '#indicatorData',
               legendElement: '#plotLegend',
+              decimalSeparator: '',
               maxChartHeight: 420,
               tableColumnDefs: [
                 { maxCharCount: 25 }, // nowrap
@@ -879,8 +1029,6 @@ $(function() {
 
 });
 </script>
-
-
 
 
 </body>
