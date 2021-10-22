@@ -40,6 +40,8 @@ graph_color_set: accessible
 hide_single_unit: true
 hide_single_series: true
 
+site_config_form: true
+
 # Automatically create indicator pages, goal pages,
 # and some other required pages.
 create_indicators:
