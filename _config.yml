@@ -69,6 +69,8 @@ email_contacts:
 country:
   name: Australia
   adjective: Australian
+  
+site_config_form: true
 
 # Optionally set a title/body for the frontpage banner. The defaults below point to a standard
 # translation, but feel free to change it as needed.
