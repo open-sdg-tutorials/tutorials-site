@@ -32,6 +32,11 @@ title: Indicators For The Sustainable Development Goals
 url: ""
 environment: staging
 
+header:
+    include: header-menu-left-aligned.html
+    
+graph_color_set: accessible
+
 # Automatically create indicator pages, goal pages,
 # and some other required pages.
 create_indicators:
